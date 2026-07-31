@@ -1,0 +1,12 @@
+# Secrets - never commit real credentials
+.env
+
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

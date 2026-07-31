@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Invoice explorer</title>
+    <!-- Box UI Elements v24.0.0 or higher is required for the metadata view v2 -->
+    <link
+      rel="stylesheet"
+      href="https://cdn01.boxcdn.net/platform/elements/26.3.0/en-US/explorer.css"
+    />
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body {
+        padding: clamp(12px, 2.5vh, 40px) clamp(12px, 2vw, 32px);
+        box-sizing: border-box;
+      }
+      .container {
+        height: 100%;
+        max-width: 1440px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container"></div>
+
+    <script src="https://cdn01.boxcdn.net/platform/elements/26.3.0/en-US/explorer.js"></script>
+    <script>
+      // Prototype only. In production, serve a downscoped token from your
+      // backend and keep your app credentials server-side.
+      const ACCESS_TOKEN = "YOUR_DEVELOPER_TOKEN";
+      const FOLDER_ID = "YOUR_FOLDER_ID";
+      const METADATA_FROM = "enterprise_123456.invoice"; // scope.templateKey
+
+      // Fully qualified metadata field IDs: metadata.<scope>.<templateKey>.<field>
+      const field = (key) => `metadata.${METADATA_FROM}.${key}`;
+
+      const columns = [
+        { textValue: "Vendor", id: field("vendor"), type: "string", allowsSorting: true },
+        { textValue: "Invoice Number", id: field("invoiceNumber"), type: "string", allowsSorting: true },
+        { textValue: "Amount", id: field("amount"), type: "number", allowsSorting: true },
+        { textValue: "Status", id: field("status"), type: "singleSelect", allowsSorting: true },
+      ];
+
+      const contentExplorer = new Box.ContentExplorer();
+      contentExplorer.show(FOLDER_ID, ACCESS_TOKEN, {
+        container: ".container",
+        defaultView: "metadata",
+        metadataQuery: {
+          from: METADATA_FROM,
+          ancestor_folder_id: FOLDER_ID,
+          fields: columns.map((c) => c.id),
+        },
+        features: {
+          contentExplorer: {
+            metadataViewV2: true, // required to enable the enhanced view
+          },
+        },
+        metadataViewProps: {
+          columns,
+          isSelectionEnabled: true, // enables row selection, which activates the Metadata button
+        },
+      });
+    </script>
+  </body>
+</html>
