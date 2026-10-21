@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, to catch new releases within the package.json ranges.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Install and smoke test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22 is the minimum package.json engines promises (setup.js uses --env-file).
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No lockfile: installs the newest versions package.json allows,
+      # which is what a reader following the tutorial gets.
+      - run: npm install --no-audit --no-fund
+
+      - run: npm ls
+
+      - name: Check box/sdk exports what setup.js uses
+        run: |
+          node -e "
+            const sdk = require('box/sdk');
+            for (const name of ['BoxClient', 'BoxDeveloperTokenAuth']) {
+              if (typeof sdk[name] !== 'function') throw new Error(name + ' is missing from box/sdk');
+            }
+            console.log('box/sdk exports BoxClient and BoxDeveloperTokenAuth');
+          "
+
+      - name: Run setup.js without credentials
+        run: |
+          set +e
+          output=$(node setup.js 2>&1)
+          set -e
+          echo "$output"
+          echo "$output" | grep -q "Set BOX_DEVELOPER_TOKEN and BOX_FOLDER_ID"
+
+      - name: Check index.html CDN assets exist
+        run: |
+          urls=$(grep -o -E 'https://cdn01\.boxcdn\.net/[^"]+' index.html)
+          test -n "$urls"
+          for url in $urls; do
+            curl -fsS -o /dev/null "$url"
+            echo "OK $url"
+          done
